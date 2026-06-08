@@ -9,7 +9,7 @@
 npm i @notsplol/kysely-d1
 ```
 
-> This is an actively maintained fork of the original [kysely-d1](https://github.com/aidenwallis/kysely-d1) by Aiden Wallis, which is no longer maintained. It targets the current Kysely and Cloudflare Workers APIs.
+> This is an actively maintained fork of the original [kysely-d1](https://github.com/aidenwallis/kysely-d1) by Aiden Wallis, which appears to be no longer maintained. It targets the current Kysely and Cloudflare Workers APIs.
 
 ## Requirements
 
@@ -28,35 +28,60 @@ export interface Env {
   DB: D1Database;
 }
 
-interface KvTable {
-  key: string;
-  value: string;
-}
-
 interface Database {
-  kv: KvTable;
+  users: {
+    id: number;
+    name: string;
+    email: string;
+  };
 }
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
-    const { searchParams } = new URL(request.url);
-    const key = searchParams.get('key');
-    if (!key) {
-      return new Response('No key defined.', { status: 400 });
-    }
-
-    // Create Kysely instance with kysely-d1
     const db = new Kysely<Database>({ dialect: new D1Dialect({ database: env.DB }) });
-    
-    // Read row from D1 table
-    const result = await db.selectFrom('kv').selectAll().where('key', '=', key).executeTakeFirst();
-    if (!result) {
-      return new Response('No value found', { status: 404 });
-    }
 
-    return new Response(result.value);
+    const user = await db
+      .selectFrom('users')
+      .selectAll()
+      .where('email', '=', 'user@example.com')
+      .executeTakeFirst();
+
+    return new Response(JSON.stringify(user));
   },
 };
 ```
 
-There is a working [example](example) also included, which implements a simple K/V store using D1.
+There is a working [example](example) included, which implements a simple K/V store.
+
+## Transactions
+
+Transactions are implemented using D1's [batch API](https://developers.cloudflare.com/d1/worker-api/d1-client-api/#dbbatch). All statements are buffered and submitted atomically on commit.
+
+```typescript
+await db.transaction().execute(async (trx) => {
+  await trx.insertInto('users').values({ name: 'Alice', email: 'alice@example.com' }).execute();
+  await trx.insertInto('users').values({ name: 'Bob', email: 'bob@example.com' }).execute();
+});
+```
+
+> **Note:** Queries inside a transaction do not return rows or affected-row counts — the statements are buffered and not yet executed. Use transactions for writes only.
+
+## Read replication (Sessions API)
+
+To use D1's [global read replication](https://developers.cloudflare.com/d1/configuration/data-security/#global-read-replication) with sequential consistency, pass a session created via `withSession()` instead of the raw database binding:
+
+```typescript
+const session = env.DB.withSession('first-primary');
+const db = new Kysely<Database>({ dialect: new D1Dialect({ database: session }) });
+
+// ... run your queries
+
+// Persist this bookmark and pass it to the next request to maintain consistency
+const bookmark = session.getBookmark();
+```
+
+## Limitations
+
+- **Transactions use D1's batch API** — reads within a transaction return empty results since statements are buffered until commit.
+- **Streaming is not supported.**
+- **D1 has a per-statement SQL variable limit.** Very large bulk inserts (many rows × many columns) may hit this limit. Split large inserts into smaller batches as a workaround.

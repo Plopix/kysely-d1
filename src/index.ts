@@ -155,7 +155,11 @@ class D1Connection implements DatabaseConnection {
     this.#transactionStatements = undefined;
   }
 
-  async *streamQuery<O>(_compiledQuery: CompiledQuery, _chunkSize: number, _options?: AbortableOperationOptions): AsyncIterableIterator<QueryResult<O>> {
+  async *streamQuery<O>(
+    _compiledQuery: CompiledQuery,
+    _chunkSize: number,
+    _options?: AbortableOperationOptions,
+  ): AsyncIterableIterator<QueryResult<O>> {
     throw new Error('D1 Driver does not support streaming');
   }
 }
