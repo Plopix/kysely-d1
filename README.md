@@ -28,25 +28,33 @@ export interface Env {
   DB: D1Database;
 }
 
+interface KvTable {
+  key: string;
+  value: string;
+}
+
 interface Database {
-  users: {
-    id: number;
-    name: string;
-    email: string;
-  };
+  kv: KvTable;
 }
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
+    const { searchParams } = new URL(request.url);
+    const key = searchParams.get('key');
+    if (!key) {
+      return new Response('No key defined.', { status: 400 });
+    }
+
+    // Create a Kysely instance using your D1 binding
     const db = new Kysely<Database>({ dialect: new D1Dialect({ database: env.DB }) });
 
-    const user = await db
-      .selectFrom('users')
-      .selectAll()
-      .where('email', '=', 'user@example.com')
-      .executeTakeFirst();
+    // Read row from D1 table
+    const result = await db.selectFrom('kv').selectAll().where('key', '=', key).executeTakeFirst();
+    if (!result) {
+      return new Response('No value found.', { status: 404 });
+    }
 
-    return new Response(JSON.stringify(user));
+    return new Response(result.value);
   },
 };
 ```
