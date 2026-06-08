@@ -1,0 +1,7 @@
+name = "kysely-d1-test"
+compatibility_date = "2025-04-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "kysely-d1-test"
+database_id = "00000000-0000-0000-0000-000000000000"

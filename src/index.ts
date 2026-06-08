@@ -96,10 +96,16 @@ class D1Connection implements DatabaseConnection {
   }
 
   async executeQuery<O>(compiledQuery: CompiledQuery, _options?: AbortableOperationOptions): Promise<QueryResult<O>> {
-    const results = await this.#config.database
-      .prepare(compiledQuery.sql)
-      .bind(...compiledQuery.parameters)
-      .all<O>();
+    const { query, sql, parameters } = compiledQuery;
+    const stmt = this.#config.database.prepare(sql).bind(...parameters);
+
+    // Use .run() for mutations without RETURNING — it reliably populates meta.changes.
+    // Use .all() for SELECT queries and mutations with RETURNING clauses.
+    const needsRows =
+      query.kind === 'SelectQueryNode' ||
+      ('returning' in query && query.returning !== undefined);
+
+    const results = needsRows ? await stmt.all<O>() : await stmt.run<O>();
 
     const numAffectedRows = results.meta.changes > 0 ? BigInt(results.meta.changes) : undefined;
 
