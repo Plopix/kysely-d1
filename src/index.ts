@@ -12,13 +12,22 @@ import {
   QueryCompiler,
   QueryResult,
 } from 'kysely';
-import type { D1Database } from '@cloudflare/workers-types';
+import type { D1Database, D1DatabaseSession, D1PreparedStatement } from '@cloudflare/workers-types';
 
 /**
  * Config for the D1 dialect. Pass your D1 instance to this object that you bound in `wrangler.toml`.
+ *
+ * To use D1's read replication with sequential consistency, pass a session created via
+ * `database.withSession()` instead of the raw database:
+ *
+ * ```typescript
+ * const session = env.DB.withSession('first-primary');
+ * const db = new Kysely({ dialect: new D1Dialect({ database: session }) });
+ * const bookmark = session.getBookmark(); // forward to next request for consistency
+ * ```
  */
 export interface D1DialectConfig {
-  database: D1Database;
+  database: D1Database | D1DatabaseSession;
 }
 
 /**
@@ -90,6 +99,7 @@ class D1Driver implements Driver {
 
 class D1Connection implements DatabaseConnection {
   #config: D1DialectConfig;
+  #transactionStatements: D1PreparedStatement[] | undefined;
 
   constructor(config: D1DialectConfig) {
     this.#config = config;
@@ -99,13 +109,24 @@ class D1Connection implements DatabaseConnection {
     const { query, sql, parameters } = compiledQuery;
     const stmt = this.#config.database.prepare(sql).bind(...parameters);
 
-    // Use .run() for mutations without RETURNING — it reliably populates meta.changes.
-    // Use .all() for SELECT queries and mutations with RETURNING clauses.
-    const needsRows =
-      query.kind === 'SelectQueryNode' ||
-      ('returning' in query && query.returning !== undefined);
+    if (this.#transactionStatements) {
+      // Buffer statement for batch execution at commit time.
+      this.#transactionStatements.push(stmt);
+      return { rows: [], numAffectedRows: undefined, insertId: undefined };
+    }
 
-    const results = needsRows ? await stmt.all<O>() : await stmt.run<O>();
+    // Use .run() only for known mutations without RETURNING — it reliably populates
+    // meta.changes. Everything else (SELECT, raw SQL, DDL) uses .all() so rows are
+    // always returned when the caller expects them.
+    const isMutation =
+      query.kind === 'InsertQueryNode' ||
+      query.kind === 'UpdateQueryNode' ||
+      query.kind === 'DeleteQueryNode' ||
+      query.kind === 'MergeQueryNode';
+    const hasReturning = 'returning' in query && query.returning !== undefined;
+    const useRun = isMutation && !hasReturning;
+
+    const results = useRun ? await stmt.run<O>() : await stmt.all<O>();
 
     const numAffectedRows = results.meta.changes > 0 ? BigInt(results.meta.changes) : undefined;
 
@@ -119,16 +140,19 @@ class D1Connection implements DatabaseConnection {
     };
   }
 
-  async beginTransaction() {
-    throw new Error('Transactions are not supported yet.');
+  async beginTransaction(): Promise<void> {
+    this.#transactionStatements = [];
   }
 
-  async commitTransaction() {
-    throw new Error('Transactions are not supported yet.');
+  async commitTransaction(): Promise<void> {
+    if (this.#transactionStatements) {
+      await this.#config.database.batch(this.#transactionStatements);
+      this.#transactionStatements = undefined;
+    }
   }
 
-  async rollbackTransaction() {
-    throw new Error('Transactions are not supported yet.');
+  async rollbackTransaction(): Promise<void> {
+    this.#transactionStatements = undefined;
   }
 
   async *streamQuery<O>(_compiledQuery: CompiledQuery, _chunkSize: number, _options?: AbortableOperationOptions): AsyncIterableIterator<QueryResult<O>> {

@@ -1,15 +1,5 @@
-/**
- * Welcome to Cloudflare Workers! This is your first worker.
- *
- * - Run `wrangler dev src/index.ts` in your terminal to start a development server
- * - Open a browser tab at http://localhost:8787/ to see your worker in action
- * - Run `wrangler publish src/index.ts --name my-worker` to publish your worker
- *
- * Learn more at https://developers.cloudflare.com/workers/
- */
-
 import { Kysely } from 'kysely';
-import { D1Dialect } from 'kysely-d1';
+import { D1Dialect } from '@notsplol/kysely-d1';
 
 export interface Env {
   DB: D1Database;
@@ -50,17 +40,11 @@ export default {
         if (!(key && value)) {
           return new Response('Key and value must be defined.', { status: 400 });
         }
-        try {
-          await db
-            .insertInto('kv')
-            .values([{ key, value }])
-            .onConflict((oc) => oc.column('key').doUpdateSet({ value }))
-            .execute();
-        } catch (err) {
-          console.log(err);
-          console.log((err as any).cause);
-          throw err;
-        }
+        await db
+          .insertInto('kv')
+          .values([{ key, value }])
+          .onConflict((oc) => oc.column('key').doUpdateSet({ value }))
+          .execute();
         return new Response(value, { status: 200 });
       }
 
@@ -73,6 +57,6 @@ export default {
       }
     }
 
-    return new Response(`Action must be get/set/delete`, { status: 400 });
+    return new Response('Action must be get/set/delete', { status: 400 });
   },
 };

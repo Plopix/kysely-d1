@@ -1,9 +1,8 @@
-name = "kysely-d1"
+name = "kysely-d1-example"
 main = "src/index.ts"
-compatibility_date = "2023-02-03"
+compatibility_date = "2025-04-01"
 
-[[ d1_databases ]]
-binding = "DB" # i.e. available in your Worker on env.DB
+[[d1_databases]]
+binding = "DB"
 database_name = "kysely-test"
-database_id = "1ddd86c2-efcb-404b-bc73-c2bd83dbb54b"
-preview_database_id = "1ddd86c2-efcb-404b-bc73-c2bd83dbb54b"
+database_id = "<YOUR_DATABASE_ID>"

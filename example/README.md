@@ -1,27 +1,25 @@
-# example
+# kysely-d1 example
 
-An example Kysely project using [kysely-d1](https://github.com/aidenwallis/kysely-d1) and [Cloudflare D1](https://blog.cloudflare.com/introducing-d1/).
+A simple K/V store Worker demonstrating [@notsplol/kysely-d1](https://github.com/notsplol/kysely-d1) with [Cloudflare D1](https://developers.cloudflare.com/d1/).
 
 ## Setup
 
-**First, create a D1 database:**
+**Create a D1 database:**
 
 ```bash
 npm run create-db
 ```
 
-Take note of the name and UUID of the database.
-
-**Then, update the binding in `wrangler.toml` to use your D1 database.**
+**Update `wrangler.toml` with your database ID:**
 
 ```toml
-[[ d1_databases ]]
-binding = "DB" # i.e. available in your Worker on env.DB
+[[d1_databases]]
+binding = "DB"
 database_name = "kysely-test"
-database_id = "<YOUR ID>"
+database_id = "<YOUR_DATABASE_ID>"
 ```
 
-**Then, run the migration script:**
+**Run the migration:**
 
 ```bash
 npm run setup
@@ -29,8 +27,12 @@ npm run setup
 
 ## Running locally
 
-After setup, run the project locally:
-
 ```bash
 npm run start
 ```
+
+## API
+
+- `GET /?action=get&key=foo` — read a value
+- `GET /?action=set&key=foo&value=bar` — write a value
+- `GET /?action=delete&key=foo` — delete a value
