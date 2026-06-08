@@ -1,12 +1,15 @@
 {
-  "name": "kysely-d1",
+  "name": "@notsplol/kysely-d1",
   "description": "Kysely dialect for Cloudflare D1",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "version": "0.4.0",
   "types": "./dist/index.d.ts",
-  "repository": "git@github.com:aidenwallis/kysely-d1.git",
-  "author": "Aiden <aiden@aidenwallis.co.uk>",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/notsplol/kysely-d1.git"
+  },
+  "author": "Shivam Patel <shivam.patel.nvim@gmail.com>",
   "license": "MIT",
   "type": "module",
   "exports": {
@@ -31,13 +34,12 @@
     "format": "prettier --write src/ example/"
   },
   "peerDependencies": {
-    "kysely": "*"
+    "kysely": ">=0.27.0"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20230115.0",
-    "@tsconfig/node14": "^1.0.3",
-    "kysely": "^0.23.3",
-    "prettier": "^2.7.1",
-    "typescript": "^4.8.4"
+    "@cloudflare/workers-types": "^4.20260608.1",
+    "kysely": "^0.29.2",
+    "prettier": "^3.8.3",
+    "typescript": "^6.0.3"
   }
 }
