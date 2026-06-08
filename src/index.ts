@@ -1,4 +1,5 @@
 import {
+  AbortableOperationOptions,
   CompiledQuery,
   DatabaseConnection,
   DatabaseIntrospector,
@@ -89,23 +90,16 @@ class D1Driver implements Driver {
 
 class D1Connection implements DatabaseConnection {
   #config: D1DialectConfig;
-  //   #transactionClient?: D1Connection
 
   constructor(config: D1DialectConfig) {
     this.#config = config;
   }
 
-  async executeQuery<O>(compiledQuery: CompiledQuery): Promise<QueryResult<O>> {
-    // Transactions are not supported yet.
-    // if (this.#transactionClient) return this.#transactionClient.executeQuery(compiledQuery)
-
+  async executeQuery<O>(compiledQuery: CompiledQuery, _options?: AbortableOperationOptions): Promise<QueryResult<O>> {
     const results = await this.#config.database
       .prepare(compiledQuery.sql)
       .bind(...compiledQuery.parameters)
-      .all();
-    if (results.error) {
-      throw new Error(results.error);
-    }
+      .all<O>();
 
     const numAffectedRows = results.meta.changes > 0 ? BigInt(results.meta.changes) : undefined;
 
@@ -114,34 +108,24 @@ class D1Connection implements DatabaseConnection {
         results.meta.last_row_id === undefined || results.meta.last_row_id === null
           ? undefined
           : BigInt(results.meta.last_row_id),
-      rows: (results?.results as O[]) || [],
+      rows: results.results,
       numAffectedRows,
-      // @ts-ignore deprecated in kysely >= 0.23, keep for backward compatibility.
-      numUpdatedOrDeletedRows: numAffectedRows,
     };
   }
 
   async beginTransaction() {
-    // this.#transactionClient = this.#transactionClient ?? new PlanetScaleConnection(this.#config)
-    // this.#transactionClient.#conn.execute('BEGIN')
     throw new Error('Transactions are not supported yet.');
   }
 
   async commitTransaction() {
-    // if (!this.#transactionClient) throw new Error('No transaction to commit')
-    // this.#transactionClient.#conn.execute('COMMIT')
-    // this.#transactionClient = undefined
     throw new Error('Transactions are not supported yet.');
   }
 
   async rollbackTransaction() {
-    // if (!this.#transactionClient) throw new Error('No transaction to rollback')
-    // this.#transactionClient.#conn.execute('ROLLBACK')
-    // this.#transactionClient = undefined
     throw new Error('Transactions are not supported yet.');
   }
 
-  async *streamQuery<O>(_compiledQuery: CompiledQuery, _chunkSize: number): AsyncIterableIterator<QueryResult<O>> {
+  async *streamQuery<O>(_compiledQuery: CompiledQuery, _chunkSize: number, _options?: AbortableOperationOptions): AsyncIterableIterator<QueryResult<O>> {
     throw new Error('D1 Driver does not support streaming');
   }
 }

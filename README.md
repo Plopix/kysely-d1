@@ -1,23 +1,28 @@
-# kysely-d1
+# @notsplol/kysely-d1
 
-[![ci](https://github.com/aidenwallis/kysely-d1/actions/workflows/ci.yaml/badge.svg)](https://github.com/aidenwallis/kysely-d1/actions/workflows/ci.yaml)
-[![npm](https://img.shields.io/npm/v/kysely-d1.svg)](https://www.npmjs.com/package/kysely-d1)
+[![ci](https://github.com/notsplol/kysely-d1/actions/workflows/ci.yaml/badge.svg)](https://github.com/notsplol/kysely-d1/actions/workflows/ci.yaml)
+[![npm](https://img.shields.io/npm/v/@notsplol/kysely-d1.svg)](https://www.npmjs.com/package/@notsplol/kysely-d1)
 
-[Kysely](https://github.com/koskimas/kysely) adapter for [Cloudflare D1](https://developers.cloudflare.com/d1/).
+[Kysely](https://github.com/koskimas/kysely) dialect for [Cloudflare D1](https://developers.cloudflare.com/d1/).
 
 ```bash
-npm i kysely-d1
+npm i @notsplol/kysely-d1
 ```
 
-This project was largely adapted from [kysely-planetscale](https://github.com/depot/kysely-planetscale).
+> This is an actively maintained fork of the original [kysely-d1](https://github.com/aidenwallis/kysely-d1) by Aiden Wallis, which is no longer maintained. It targets the current Kysely and Cloudflare Workers APIs.
+
+## Requirements
+
+- `kysely >= 0.27.0`
+- Cloudflare Workers or Pages environment with a D1 binding
 
 ## Usage
 
-Pass your D1 binding into the dialect in order to configure the Kysely client. Follow [these docs](https://developers.cloudflare.com/d1/get-started/#4-bind-your-worker-to-your-d1-database) for instructions on how to do so.
+Pass your D1 binding into the dialect to configure the Kysely client. Follow [these docs](https://developers.cloudflare.com/d1/get-started/#4-bind-your-worker-to-your-d1-database) for instructions on how to bind D1 to your Worker.
 
 ```typescript
 import { Kysely } from 'kysely';
-import { D1Dialect } from 'kysely-d1';
+import { D1Dialect } from '@notsplol/kysely-d1';
 
 export interface Env {
   DB: D1Database;
@@ -54,4 +59,4 @@ export default {
 };
 ```
 
-There is a working [example](example) also included, which implements a K/V style store using D1.
+There is a working [example](example) also included, which implements a simple K/V store using D1.
