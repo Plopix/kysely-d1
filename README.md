@@ -76,7 +76,7 @@ await db.transaction().execute(async (trx) => {
 
 ## Read replication (Sessions API)
 
-To use D1's [global read replication](https://developers.cloudflare.com/d1/configuration/data-security/#global-read-replication) with sequential consistency, pass a session created via `withSession()` instead of the raw database binding:
+To use D1's [global read replication](https://developers.cloudflare.com/d1/best-practices/read-replication/) with sequential consistency, pass a session created via `withSession()` instead of the raw database binding:
 
 ```typescript
 const session = env.DB.withSession('first-primary');
